@@ -1,0 +1,293 @@
+INICIO	SUBENTRY	BASES=(3,4)
+		BAL		12,INTRO
+		B		MENU
+
+*******************
+*      INTRO      *
+*******************
+
+INTRO	WTO		' '
+		WTO		'*****************************************************'
+		WTO		'*                                                   *'
+		WTO		'*             - FACULTAD DE INGENIERIA -            *'
+		WTO		'*             UNIVERSIDAD DE BUENOS AIRES           *'
+		WTO		'*---------------------------------------------------*'
+		WTO		'*                                                   *'
+		WTO		'*             PROBLEMA DE LAS 8 REINAS              *'
+		WTO		'*                                                   *'
+		WTO		'*               AUTOR: MATIAS TEBELE                *'
+		WTO		'*                                                   *'
+		WTO		'*                  PADRÓN: 95372                    *'
+		WTO		'*                                                   *'
+		WTO		'*****************************************************'
+		WTO		' '
+		BR		12
+
+***************
+*    RESET    *
+***************
+
+ULTSOL	WTO		'*===============================*'	
+		WTO		'*   ESA FUE LA ÚLTIMA SOLUCIÓN  *'
+		WTO		'*===============================*'	
+		WTO		' '
+		MVI		NUM,C'1'
+		ZAP		CONT,=P'0'
+		MVI		OTRASOL,C' '
+		
+***************
+*    MENU     *
+***************		
+		
+MENU	WTO		'*****************************************************'
+		WTO		'*                MENÚ DE OPERACIONES                *'
+		WTO		'*---------------------------------------------------*'
+		WTO		'*                                                   *'
+		WTO		'*           1 - MOSTRAR SOLUCIONES                  *'
+		WTO		'*           2 - INGRESAR POSICIÓN INICIAL           *'
+		WTO		'*           0 - SALIR                               *'
+		WTO		'*                                                   *'
+		WTO		'*****************************************************'
+		WTOR	'',OPC,,WAITECB
+		WAIT	ECB=WAITECB
+		CLI		OPC,C'0'
+		BE		SALIR
+		CLI		OPC,C'1'
+		BE		INICIAR
+		CLI		OPC,C'2'
+		BE		INGPOS
+		B		MENU
+		
+***************************
+*    POSICION INICIAL     *
+***************************
+
+INGPOS	WTO		' '
+INGFILA	WTOR	'INGRESE FILA DEL TABLERO (1-8): ',FILA,,WAITECB
+		WAIT	ECB=WAITECB
+		PACK	FILAPK,FILA
+		CP		FILAPK,=P'1'
+		BL		INGFILA
+		CP		FILAPK,=P'8'
+		BH		INGFILA
+INGCOL	WTOR	'INGRESE COLUMNA DEL TABLERO (1-8): ',COL,,WAITECB
+		WAIT	ECB=WAITECB
+		PACK	COLPK,COL
+		CP		COLPK,=P'1'
+		BL		INGCOL
+		CP		COLPK,=P'8'
+		BH		INGCOL
+
+***************************
+*        PROCESAR         *
+***************************			
+
+INICIAR	LA		8,TABLERO
+		LA		8,11(8)
+PROCESAR ST		8,DIRTAB		;R8 = DIR TABLERO
+INSREINA L		5,DIRTAB
+		LA		6,8
+COMPARAR CLI	0(5),C' '
+		BE		COLOCAR
+		LA		5,1(5)
+		BCT		6,COMPARAR
+		MVI		PUESTO,C'N'
+		S		5,=F'8'			;VUELVO A COMIENZO DE FILA
+		LA		6,8				;REEMPLAZO LOS 9 POR ' '
+VERNUEVE CLI	0(5),C'9'
+		BNE		NONUEVE
+		MVI		0(5),C' '
+NONUEVE	LA		5,1(5)
+		BCT		6,VERNUEVE
+		B		REINAPRI
+		
+***************************
+*         COLOCAR         *
+***************************	
+		
+COLOCAR	LR		9,5				;R9 = DIR REINA
+		MVI		0(5),C'R'
+		MVI		PUESTO,C'S'
+		LA		11,8
+		LA		10,TABMOV
+SIGMOV	LR		5,9		
+OTROMOV	A		5,0(10)			;TABLERO++
+		CLI		0(5),C'*'
+		BE		CAMDIR			;HORIZ/DIAG/VERT
+		CLI		0(5),C' '
+		BNE		SIGUE
+		MVC		0(1,5),NUM		;COLOCO EL NRO DE REINA
+SIGUE	B		OTROMOV
+CAMDIR	LA		10,4(10)		;TABMOV++
+		BCT		11,SIGMOV
+		
+***************************
+*         REINAS          *
+***************************			
+
+REINAPRI CLI	NUM,C'1'
+		BNE		REINA
+		CLI		PUESTO,C'N'
+        BE 		ULTSOL
+		MVI		NUM,C'2'
+        LA 		8,10(8)			;SIG FILA
+        B  		PROCESAR
+
+REINA	CLI		NUM,C'8'
+		BE		REINAULT
+		CLI		PUESTO,C'N'
+		BE		BORRAR
+		PACK	NUMPK,NUM
+		AP		NUMPK,=P'1'		;NUM++
+		UNPK	NUM,NUMPK
+		MVZ		NUM,=X'FF'
+		LA		8,10(8)
+		B		PROCESAR
+		
+REINAULT CLI	PUESTO,C'N'
+        BE 		BORRAR
+        AP 		CONT,=P'1'
+        B  		MOSTRAR
+
+***************************
+*         BORRAR          *
+***************************	
+
+BORRAR	PACK	NUMPK,NUM
+		SP		NUMPK,=P'1'		;NUM--
+		UNPK	NUM,NUMPK
+		MVZ		NUM,=X'FF'
+		S  		8,=F'10'
+		ST 		8,DIRTAB
+		BAL		7,ELIMINA
+		B  		PROCESAR
+		
+BORRARUL BAL	7,ELIMINA
+		B  		PROCESAR
+
+***************************
+*     ELIMINAR REINA      *
+***************************	
+		 
+ELIMINA	L		5,DIRTAB
+OTROELI	CLI   	0(5),C'R'
+		BE		ENCOELI
+		LA    	5,1(5)
+		B		OTROELI
+ENCOELI	MVI		0(5),C'9'
+		LA 		5,TABLERO
+        LA 		5,11(5)			;ME POSICIONO EN EL PRIMERO ELEMENTO
+        LA 		9,78
+LOOPELI	CLC		0(1,5),NUM		;REEMPLAZO TODOS LOS NROS DE REINA POR ' '
+        BNE		AVANELI
+        MVI		0(5),C' '
+AVANELI LA 		5,1(5)
+        BCT		9,LOOPELI
+        BR 		7
+
+***************************
+*   MUESTRA DE TABLERO    *
+***************************	
+
+MOSTRAR	CLI		OPC,C'2'			;MUESTRO POR POS. INICIAL
+		BNE		SEGUIR
+		LA		5,TABLERO
+		ZAP		DOBLE,FILAPK
+		CVB		7,DOBLE
+		ZAP		DOBLE,COLPK
+		CVB		9,DOBLE
+		SR		9,7
+		M		6,=F'11'
+		AR		5,7
+		AR		5,9
+		CLI		0(5),C'R'
+		BE		SEGUIR
+		SP 		CONT,=P'1'
+		B		BORRARUL
+
+SEGUIR	LA		5,TABLERO
+		LA		5,11(5)		
+		LA		9,8					;R9 = CANT FILAS
+
+		WTO		'*===============================*'		
+		UNPK	SOLU,CONT			;MUESTRO # SOLUCION
+        MVZ		SOLU+1,=X'FF'
+		MVC		NUMSOLU+20(2),SOLU
+		WTO		MF=(E,NUMWTO)		
+		WTO		'*===============================*'
+		
+OTRAFILA MVI	LINEA,C' '
+		MVC		LINEA+1(79),LINEA	;BLANQUEO LA LINEA
+		LA		7,8					;R7 = CANT COLUMNAS
+		LA		6,LINEA
+		MVC		0(2,6),=C'| '
+		LA		6,2(6)		
+OTRACOL	CLI		0(5),C'R'
+		BE		MOSREINA
+		MVI		0(6),C' '
+		LA		6,1(6)
+		B		MOSSEPA
+MOSREINA MVI	0(6),C'R'
+		LA		6,1(6)
+MOSSEPA MVC		0(3,6),=C' | '
+		LA		6,3(6)				;AVANZO EN LA LINEA
+		LA		5,1(5)				;AVANZO EN EL TABLERO
+		BCT		7,OTRACOL
+		WTO		MF=(E,WTOBLOCK)		;MUESTRO FILA
+		A		5,=F'2'
+		BCT		9,OTRAFILA
+		
+		WTO		' '
+		CLI		OTRASOL,C'T'
+		BE		BORRARUL
+		
+***************************
+*     ¿OTRA SOLUCION?     *
+***************************			
+		
+PREGSOL	WTO		'¿DESEA VER OTRA SOLUCIÓN?'
+		WTOR	'(S: SI / N: NO / T: VER TODAS): ',OTRASOL,,WAITECB
+		WAIT	ECB=WAITECB
+		WTO		' '
+		CLI		OTRASOL,C'N'
+		BE		SALIR
+		CLI		OTRASOL,C'S'
+		BE		BORRARUL
+		CLI		OTRASOL,C'T'
+		BE		BORRARUL
+		B		PREGSOL
+		
+SALIR	SUBEXIT
+		
+***************************
+*       VARIABLES         *
+***************************	
+
+WAITECB	DC		F'0'
+TABLERO	DS		0CL100
+		DC		CL10'**********'
+		DC		8CL10'*        *'
+		DC		CL10'**********'	
+OPC		DS		C
+PUESTO	DS		C
+NUM		DC		C'1'
+DOBLE	DS		D
+TABMOV	DC		F'1',F'11',F'10',F'9',F'-1',F'-11',F'-10',F'-9'
+DIRTAB	DS		F
+CONT	DC		PL2'0'
+WTOBLOCK DC		H'84'
+		DC		H'0'
+LINEA	DS		CL80
+OTRASOL	DS		C
+NUMWTO DC		H'37'
+		DC		H'0'
+NUMSOLU	DC		C'*         SOLUCIÓN #            *'
+SOLU	DS		CL2
+NUMPK	DS		P
+FILA	DS		C
+FILAPK	DS		P
+COL		DS		C
+COLPK	DS		P
+HALF	DC		H'1'
+
+		END
